@@ -54,7 +54,7 @@ public class IorUsers implements Serializable {
     private String lastLoginIp;
 
     /** 注销时间（逻辑删除标记，1970-01-01表示未删除） */
-    @TableLogic(value = "1970-01-01 00:00:01", delval = "now()")
+    @TableLogic(value = "'1970-01-01 00:00:01'", delval = "now()")
     private LocalDateTime deletedAt;
 
     /** 创建时间 */
