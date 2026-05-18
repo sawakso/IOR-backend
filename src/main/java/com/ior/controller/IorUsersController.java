@@ -18,8 +18,8 @@ public class IorUsersController {
     private IorUsersService iorUsersService;
 
     @GetMapping("/sendcode")
-    public Result sendCode(@RequestParam String email) {
-        return iorUsersService.sendCode(email);
+    public Result sendCode(@RequestParam String email,@RequestParam String type) {
+        return iorUsersService.sendCode(email, type);
     }
 
 
