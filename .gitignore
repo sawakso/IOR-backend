@@ -3,8 +3,10 @@ ARCHITECTURE.md
 .env
 .env.*
 !.env.example
-application.yaml
-!application.yaml.example
+
+# 配置文件（保留示例文件）
+src/main/resources/application.yaml
+!src/main/resources/application.yaml.example
 devlog/
 
 target/
