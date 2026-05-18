@@ -3,6 +3,8 @@ ARCHITECTURE.md
 .env
 .env.*
 !.env.example
+!application.yaml.example
+devlog/
 
 target/
 .mvn/wrapper/maven-wrapper.jar

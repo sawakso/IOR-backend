@@ -1,0 +1,82 @@
+server:
+  port: 886
+
+spring:
+  application:
+    name: IOR
+
+  servlet:
+      multipart:
+        enabled: true
+        max-file-size: 50MB      # 单个文件最大大小
+        max-request-size: 50MB   # 总请求最大大小
+        file-size-threshold: 2KB
+        location: /tmp
+  datasource:
+    url: jdbc:mysql://localhost:3306/${DB_NAME:ior}?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&characterEncoding=UTF-8
+    username: root
+    password: ${DB_PASSWORD:1234}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+
+  data:
+    redis:
+      host: localhost      # Redis 服务器地址
+      port: 6379           # Redis 端口
+      password:            # 如果有密码则填写，没有则留空
+      database: 0          # 使用的数据库索引
+      timeout: 3000ms      # 连接超时时间
+      lettuce:             # Spring Boot 3 推荐使用 Lettuce
+        pool:
+          max-active: 8    # 连接池最大连接数
+          max-idle: 8      # 连接池最大空闲连接数
+          min-idle: 0      # 连接池最小空闲连接数
+          max-wait: -1ms   # 连接池最大阻塞等待时间（负值表示无限制）
+
+  mail:
+    host: smtp.qq.com             # QQ邮箱SMTP服务器
+    port: 465                     # SSL端口
+    username: ${MAIL_SEND_USERNAME}    # 发件邮箱（必须和setFrom一致）
+    password: ${MAIL_SMTP_CODE}    # SMTP服务授权码（不是密码）
+    properties:
+      mail:
+        smtp:
+          ssl:
+            enable: true          # 启用SSL
+          auth: true              # 开启认证
+
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: auto
+
+jwt:
+  secret: 7e3a5c9f0b2d4a1e8f6c9b3d2a7f1c4e
+  access-token-expiration: 3600
+  refresh-token-expiration: 86400
+
+logging:
+  level:
+    root: INFO
+    com: DEBUG
+
+
+
+knife4j:
+  enable: true
+  setting:
+    language: zh_cn               # 接口文档开关
+
+cloudflare:
+  r2:
+    access-key: ${R2_ACCESS_KEY}   # 云存储AccessKey
+    secret-key: ${R2_SECRET_KEY}   # 云存储SecretKey
+    account-id: ${R2_ACCOUNT_ID}   # 账号ID
+    bucket: ${R2_BUCKET}           # 存储桶
+    endpoint: ${R2_ENDPOINT}       # 访问地址
+
