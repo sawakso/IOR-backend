@@ -1,5 +1,7 @@
 package com.ior.config;
 
+import com.ior.filter.JwtAuthenticationFilter;
+import jakarta.annotation.Resource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -11,6 +13,9 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
+    @Resource
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     /**
      * 密码编码器：使用 BCrypt 强哈希算法
@@ -44,7 +49,9 @@ public class SecurityConfig {
                 .requestMatchers("/hello").permitAll()
                 // 其他所有请求都需要认证
                 .anyRequest().authenticated()
-            );
+            )
+            // 在 UsernamePasswordAuthenticationFilter 之前添加 JWT 过滤器
+            .addFilterBefore(jwtAuthenticationFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
