@@ -32,7 +32,6 @@ public class IorUsers implements Serializable {
     private String email;
 
     /** 密码哈希值（BCrypt加密） */
-    @TableField(select = false) // 查询时默认不返回密码
     private String passwordHash;
 
     /** 昵称（可修改） */

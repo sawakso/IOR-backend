@@ -20,12 +20,16 @@ import com.ior.strategy.VerificationCodeContext;
 import com.ior.utils.JwtUtil;
 import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class IorUsersServiceImpl extends ServiceImpl<IorUsersMapper, IorUsers> implements IorUsersService {
@@ -108,13 +112,18 @@ public class IorUsersServiceImpl extends ServiceImpl<IorUsersMapper, IorUsers> i
         IorUsers user = this.getOne(wrapper);
 
         if (user == null) {
+            log.warn("登录失败：未找到标识符为 {} 的用户", request.getIdentifier());
             return Result.error(400, "用户不存在");
         }
+        log.info("找到用户: ID={}, Username={}, Hash={}", user.getId(), user.getUsername(), user.getPasswordHash());
 
         // 2. 验证身份
         boolean isAuthenticated = false;
         if ("PASSWORD".equalsIgnoreCase(request.getLoginType())) {
+            log.info("登录调试 - 输入密码: {}, 数据库哈希前10位: {}", request.getPassword(), 
+                     user.getPasswordHash() != null ? user.getPasswordHash().substring(0, Math.min(10, user.getPasswordHash().length())) : "null");
             isAuthenticated = passwordEncoder.matches(request.getPassword(), user.getPasswordHash());
+            log.info("登录调试 - 密码比对结果: {}", isAuthenticated);
         } else if ("CODE".equalsIgnoreCase(request.getLoginType())) {
             String savedCode = codeContext.get(user.getEmail(), "login");
             if (savedCode != null && savedCode.equals(request.getCode())) {
@@ -161,7 +170,7 @@ public class IorUsersServiceImpl extends ServiceImpl<IorUsersMapper, IorUsers> i
     }
 
     @Override
-    public Result updatePassword(Long userId, UpdatePasswordRequest request) {
+    public Result updatePassword(Long userId, UpdatePasswordRequest request, String token) {
         IorUsers user = this.getById(userId);
         if (user == null || !passwordEncoder.matches(request.getOldPassword(), user.getPasswordHash())) {
             return Result.error(400, "旧密码错误");
@@ -169,11 +178,15 @@ public class IorUsersServiceImpl extends ServiceImpl<IorUsersMapper, IorUsers> i
         
         user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
         this.updateById(user);
-        return Result.ok("密码修改成功");
+
+        // 敏感操作后，将当前 Token 加入黑名单，强制重新登录
+        jwtUtil.blacklistToken(extractPureToken(token));
+        
+        return Result.ok("密码修改成功，请重新登录");
     }
 
     @Override
-    public Result updateEmail(Long userId, UpdateEmailRequest request) {
+    public Result updateEmail(Long userId, UpdateEmailRequest request, String token) {
         IorUsers user = this.getById(userId);
         if (user == null) {
             return Result.error(404, "用户不存在");
@@ -200,11 +213,22 @@ public class IorUsersServiceImpl extends ServiceImpl<IorUsersMapper, IorUsers> i
         user.setEmail(request.getNewEmail());
         this.updateById(user);
 
-        // 5. 清除验证码
+        // 5. 清除验证码并拉黑当前 Token
         codeContext.remove(user.getEmail(), "change_email");
         codeContext.remove(request.getNewEmail(), "change_email");
+        jwtUtil.blacklistToken(extractPureToken(token));
 
-        return Result.ok("邮箱修改成功");
+        return Result.ok("邮箱修改成功，请重新登录");
+    }
+
+    /**
+     * 辅助方法：从 Header 值中提取纯净的 Token 字符串
+     */
+    private String extractPureToken(String authHeader) {
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            return authHeader.substring(7).trim();
+        }
+        return authHeader;
     }
 
     @Override

@@ -58,26 +58,39 @@ public class IorUsersController {
     }
 
     @PutMapping("/password")
-    @Operation(summary = "修改密码", description = "验证旧密码并设置新密码")
+    @Operation(summary = "修改密码", description = "验证旧密码并设置新密码，成功后原 Token 失效")
     public Result updatePassword(@RequestHeader("Authorization") String token, @RequestBody @Valid UpdatePasswordRequest request) {
         Long userId = extractUserId(token);
-        return iorUsersService.updatePassword(userId, request);
+        // 传入原始 token 字符串以便后续拉黑
+        return iorUsersService.updatePassword(userId, request, token);
     }
 
     @PutMapping("/email")
-    @Operation(summary = "修改邮箱", description = "需要新旧邮箱的双重验证码")
+    @Operation(summary = "修改邮箱", description = "需要新旧邮箱的双重验证码，成功后原 Token 失效")
     public Result updateEmail(@RequestHeader("Authorization") String token, @RequestBody @Valid UpdateEmailRequest request) {
         Long userId = extractUserId(token);
-        return iorUsersService.updateEmail(userId, request);
+        return iorUsersService.updateEmail(userId, request, token);
     }
 
     /**
      * 辅助方法：从 Token 中提取用户 ID
      */
     private Long extractUserId(String token) {
-        if (token != null && token.startsWith("Bearer ")) {
-            token = token.substring(7);
+        if (token == null) {
+            throw new IllegalArgumentException("Token 不能为空");
         }
+        // 1. 去除首尾所有空白字符
+        token = token.trim();
+        
+        // 2. 如果以 Bearer 开头，则截取后面的部分并再次去空
+        if (token.startsWith("Bearer ")) {
+            token = token.substring(7).trim();
+        }
+        
+        if (token.isEmpty()) {
+            throw new IllegalArgumentException("无效的 Token");
+        }
+
         Claims claims = jwtUtil.getClaimsFromToken(token);
         return ((Number) claims.get("userId")).longValue();
     }

@@ -17,4 +17,16 @@ public class RedisConstants {
     public static String codeKey(String type, String email) {
         return CODE_PREFIX + type.toLowerCase() + ":" + email;
     }
+
+    /** Token 黑名单 key 前缀 */
+    private static final String BLACKLIST_PREFIX = "ior:blacklist:token:";
+
+    /**
+     * 生成 Token 黑名单 Redis key
+     * @param token JWT 字符串
+     * @return ior:blacklist:token:<token>
+     */
+    public static String blacklistKey(String token) {
+        return BLACKLIST_PREFIX + token;
+    }
 }

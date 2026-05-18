@@ -26,12 +26,12 @@ public interface IorUsersService extends IService<IorUsers> {
     /**
      * 修改密码
      */
-    Result updatePassword(Long userId, UpdatePasswordRequest request);
+    Result updatePassword(Long userId, UpdatePasswordRequest request, String token);
 
     /**
      * 修改邮箱（需双重验证）
      */
-    Result updateEmail(Long userId, UpdateEmailRequest request);
+    Result updateEmail(Long userId, UpdateEmailRequest request, String token);
 
     /**
      * 申请注销账户（进入7天冷静期）
