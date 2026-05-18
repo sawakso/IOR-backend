@@ -3,6 +3,7 @@ ARCHITECTURE.md
 .env
 .env.*
 !.env.example
+application.yaml
 !application.yaml.example
 devlog/
 
