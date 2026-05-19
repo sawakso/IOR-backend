@@ -19,6 +19,11 @@ public interface IorUsersService extends IService<IorUsers> {
     Result logout();
 
     /**
+     * 退出登录（将 Token 加入黑名单）
+     */
+    Result logout(String token);
+
+    /**
      * 更新基本资料（昵称、头像）
      */
     Result updateProfile(Long userId, UpdateProfileRequest request);
@@ -36,10 +41,25 @@ public interface IorUsersService extends IService<IorUsers> {
     /**
      * 申请注销账户（进入7天冷静期）
      */
-    Result requestDeletion(Long userId, String reason);
+    Result requestDeletion(Long userId, com.ior.domain.dto.DeletionRequest request);
 
     /**
      * 撤销注销申请（冷静期内登录即触发）
      */
     Result cancelDeletion(Long userId);
+
+    /**
+     * 上传头像
+     */
+    Result uploadAvatar(Long userId, org.springframework.web.multipart.MultipartFile file);
+
+    /**
+     * 重置密码（通过邮箱验证码）
+     */
+    Result resetPassword(com.ior.domain.dto.ResetPasswordRequest request);
+
+    /**
+     * 获取当前用户信息
+     */
+    Result getUserInfo(Long userId);
 }

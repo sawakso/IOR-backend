@@ -55,8 +55,8 @@ public class SecurityConfig {
                     "/webjars/**",
                     "/doc.html"
                 ).permitAll()
-                // 放行用户注册、登录和发送验证码接口
-                .requestMatchers("/user/register", "/user/login", "/user/sendcode").permitAll()
+                // 放行用户注册、登录、发送验证码和重置密码接口
+                .requestMatchers("/user/register", "/user/login", "/user/sendcode", "/user/password/reset").permitAll()
                 // 放行 Hello World 测试接口
                 .requestMatchers("/hello").permitAll()
                 // 其他所有请求都需要认证（只要 Token 有效即可访问）

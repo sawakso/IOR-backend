@@ -2,6 +2,8 @@ package com.ior.controller;
 
 import com.ior.domain.dto.LoginRequest;
 import com.ior.domain.dto.RegisterRequest;
+import com.ior.domain.dto.DeletionRequest;
+import com.ior.domain.dto.ResetPasswordRequest;
 import com.ior.domain.dto.UpdateEmailRequest;
 import com.ior.domain.dto.UpdatePasswordRequest;
 import com.ior.domain.dto.UpdateProfileRequest;
@@ -70,6 +72,44 @@ public class IorUsersController {
     public Result updateEmail(@RequestHeader("Authorization") String token, @RequestBody @Valid UpdateEmailRequest request) {
         Long userId = extractUserId(token);
         return iorUsersService.updateEmail(userId, request, token);
+    }
+
+    @PostMapping("/logout")
+    @Operation(summary = "退出登录", description = "将当前 Token 加入黑名单，使其失效")
+    public Result logout(@RequestHeader("Authorization") String token) {
+        return iorUsersService.logout(token);
+    }
+
+    @PostMapping("/avatar/upload")
+    @Operation(summary = "上传头像", description = "上传图片作为用户头像，支持 JPG、PNG、GIF、WEBP、BMP 格式，最大 5MB")
+    public Result uploadAvatar(
+            @RequestHeader("Authorization") String token,
+            @Parameter(description = "头像文件", required = true)
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
+        Long userId = extractUserId(token);
+        return iorUsersService.uploadAvatar(userId, file);
+    }
+
+    @PostMapping("/deletion/request")
+    @Operation(summary = "申请注销账户", description = "需要邮箱验证码验证身份，提交后进入7天冷静期")
+    public Result requestDeletion(
+            @RequestHeader("Authorization") String token,
+            @RequestBody @Valid DeletionRequest request) {
+        Long userId = extractUserId(token);
+        return iorUsersService.requestDeletion(userId, request);
+    }
+
+    @PostMapping("/password/reset")
+    @Operation(summary = "重置密码", description = "通过邮箱验证码重置密码，无需登录")
+    public Result resetPassword(@RequestBody @Valid ResetPasswordRequest request) {
+        return iorUsersService.resetPassword(request);
+    }
+
+    @GetMapping("/profile")
+    @Operation(summary = "获取用户信息", description = "获取当前登录用户的详细信息")
+    public Result getUserInfo(@RequestHeader("Authorization") String token) {
+        Long userId = extractUserId(token);
+        return iorUsersService.getUserInfo(userId);
     }
 
     /**
