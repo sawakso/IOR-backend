@@ -156,6 +156,7 @@ public class IorUsersServiceImpl extends ServiceImpl<IorUsersMapper, IorUsers> i
         user.setLastLoginAt(LocalDateTime.now());
         // TODO: 获取真实 IP
         user.setLastLoginIp("127.0.0.1");
+        user.setUpdatedAt(LocalDateTime.now()); // 显式更新时间
         this.updateById(user);
 
         // 5. 生成 JWT Token
@@ -204,6 +205,7 @@ public class IorUsersServiceImpl extends ServiceImpl<IorUsersMapper, IorUsers> i
             user.setAvatarUrl(request.getAvatarUrl());
         }
         
+        user.setUpdatedAt(LocalDateTime.now()); // 显式更新时间
         this.updateById(user);
         return Result.ok("资料更新成功");
     }
@@ -222,6 +224,7 @@ public class IorUsersServiceImpl extends ServiceImpl<IorUsersMapper, IorUsers> i
         }
         
         user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        user.setUpdatedAt(LocalDateTime.now()); // 显式更新时间
         this.updateById(user);
 
         // 敏感操作后，将当前 Token 加入黑名单，强制重新登录
@@ -256,6 +259,7 @@ public class IorUsersServiceImpl extends ServiceImpl<IorUsersMapper, IorUsers> i
 
         // 4. 执行修改
         user.setEmail(request.getNewEmail());
+        user.setUpdatedAt(LocalDateTime.now()); // 显式更新时间
         this.updateById(user);
 
         // 5. 清除验证码并拉黑当前 Token
@@ -312,6 +316,7 @@ public class IorUsersServiceImpl extends ServiceImpl<IorUsersMapper, IorUsers> i
 
         // 5. 将用户状态改为“待注销”（冷静期）
         user.setStatus(2); // 2-待注销
+        user.setUpdatedAt(LocalDateTime.now()); // 显式更新时间
         this.updateById(user);
 
         // 6. 清除已使用的验证码
@@ -339,6 +344,7 @@ public class IorUsersServiceImpl extends ServiceImpl<IorUsersMapper, IorUsers> i
             // 3. 恢复用户正常状态
             IorUsers user = this.getById(userId);
             user.setStatus(1); // 1-正常
+            user.setUpdatedAt(LocalDateTime.now()); // 显式更新时间
             this.updateById(user);
             
             return Result.ok("已撤销注销申请，账户恢复正常");
@@ -391,6 +397,7 @@ public class IorUsersServiceImpl extends ServiceImpl<IorUsersMapper, IorUsers> i
 
             // 7. 更新数据库中的头像 URL
             user.setAvatarUrl(newAvatarUrl);
+            user.setUpdatedAt(LocalDateTime.now()); // 显式更新时间
             this.updateById(user);
 
             // 8. 删除旧头像（如果存在且不是默认头像）
@@ -438,6 +445,7 @@ public class IorUsersServiceImpl extends ServiceImpl<IorUsersMapper, IorUsers> i
 
         // 5. 更新密码
         user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        user.setUpdatedAt(LocalDateTime.now()); // 显式更新时间
         this.updateById(user);
 
         // 6. 清除已使用的验证码

@@ -22,12 +22,12 @@ public class IorPostController {
     private JwtUtil jwtUtil;
 
     @PostMapping("/create")
-    @Operation(summary = "创建帖子", description = "创建新的生命流帖子")
+    @Operation(summary = "创建帖子", description = "创建新的生命流帖子，需先上传文件获取URL")
     public Result createPost(
             @RequestHeader("Authorization") String token,
             @Parameter(description = "标题", required = true) @RequestParam String title,
             @Parameter(description = "内容", required = true) @RequestParam String content,
-            @Parameter(description = "媒体文件URL（JSON格式）") @RequestParam(required = false) String mediaUrls,
+            @Parameter(description = "媒体文件URL数组（JSON格式）") @RequestParam(required = false) String mediaUrls,
             @Parameter(description = "可见性：PUBLIC/PRIVATE") @RequestParam(required = false) String visibility,
             @Parameter(description = "标签（逗号分隔）") @RequestParam(required = false) String tags,
             @Parameter(description = "分类ID") @RequestParam Long categoryId) {
@@ -119,5 +119,52 @@ public class IorPostController {
 
         Claims claims = jwtUtil.getClaimsFromToken(token);
         return ((Number) claims.get("userId")).longValue();
+    }
+
+    @GetMapping("/my/drafts")
+    @Operation(summary = "获取我的草稿列表", description = "查询当前用户的所有草稿")
+    public Result getMyDrafts(
+            @RequestHeader("Authorization") String token,
+            @Parameter(description = "页码") @RequestParam(required = false) Integer page,
+            @Parameter(description = "每页数量") @RequestParam(required = false) Integer size) {
+        
+        Long userId = extractUserId(token);
+        return iorPostService.getMyDrafts(userId, page, size);
+    }
+
+    @PostMapping("/{postId}/publish")
+    @Operation(summary = "发布草稿", description = "将草稿发布为公开或私密帖子")
+    public Result publishDraft(
+            @RequestHeader("Authorization") String token,
+            @PathVariable Long postId,
+            @Parameter(description = "可见性：PUBLIC/PRIVATE", required = true) 
+            @RequestParam String visibility) {
+        
+        Long userId = extractUserId(token);
+        return iorPostService.publishDraft(postId, userId, visibility);
+    }
+
+    @GetMapping("/list")
+    @Operation(summary = "获取公共帖子列表", description = "分页查询公开的帖子，支持分类和标签筛选")
+    public Result getPublicPosts(
+            @Parameter(description = "分类ID（0表示全部）") @RequestParam(required = false) Long categoryId,
+            @Parameter(description = "标签（模糊匹配）") @RequestParam(required = false) String tag,
+            @Parameter(description = "页码") @RequestParam(required = false) Integer page,
+            @Parameter(description = "每页数量") @RequestParam(required = false) Integer size,
+            @RequestHeader(value = "Authorization", required = false) String token) {
+        
+        Long currentUserId = token != null ? extractUserId(token) : null;
+        return iorPostService.getPublicPosts(categoryId, tag, page, size, currentUserId);
+    }
+
+    @GetMapping("/my/posts")
+    @Operation(summary = "获取我的帖子列表", description = "查询当前用户的所有帖子（包括草稿、私密）")
+    public Result getMyPosts(
+            @RequestHeader("Authorization") String token,
+            @Parameter(description = "页码") @RequestParam(required = false) Integer page,
+            @Parameter(description = "每页数量") @RequestParam(required = false) Integer size) {
+        
+        Long userId = extractUserId(token);
+        return iorPostService.getMyPosts(userId, page, size);
     }
 }

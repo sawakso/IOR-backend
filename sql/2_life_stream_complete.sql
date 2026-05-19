@@ -1,10 +1,16 @@
 -- ============================================
--- 生命流模块 - 优化版表结构
--- 文本存 SQL，媒体文件独立建表
+-- 生命流模块 - 完整表结构（含 media_urls）
+-- 执行前建议先删除旧表
 -- ============================================
 
--- 1. 帖子主表（只存文本内容）
-CREATE TABLE IF NOT EXISTS ior_posts (
+-- 删除旧表（按依赖顺序）
+DROP TABLE IF EXISTS ior_post_categories;
+DROP TABLE IF EXISTS ior_post_media;
+DROP TABLE IF EXISTS ior_post_versions;
+DROP TABLE IF EXISTS ior_posts;
+
+-- 1. 帖子主表（包含 media_urls 字段）
+CREATE TABLE ior_posts (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '帖子ID',
     user_id BIGINT NOT NULL COMMENT '作者ID',
     parent_id BIGINT DEFAULT 0 COMMENT '父帖子ID（0表示根帖子）',
@@ -12,9 +18,10 @@ CREATE TABLE IF NOT EXISTS ior_posts (
     -- 文本内容
     title VARCHAR(200) NOT NULL DEFAULT '' COMMENT '标题',
     content TEXT COMMENT '正文内容',
+    media_urls TEXT COMMENT '媒体文件URL数组（JSON格式）',
     
     -- 元数据
-    visibility ENUM('PUBLIC', 'PRIVATE') DEFAULT 'PUBLIC' COMMENT '可见性',
+    visibility ENUM('PUBLIC', 'PRIVATE', 'DRAFT') DEFAULT 'DRAFT' COMMENT '可见性：PUBLIC-公开, PRIVATE-私密, DRAFT-草稿',
     status TINYINT DEFAULT 1 COMMENT '状态：0-删除, 1-正常',
     tags VARCHAR(500) DEFAULT '' COMMENT '标签（逗号分隔）',
     category_id BIGINT DEFAULT 0 COMMENT '分类ID',
@@ -35,7 +42,7 @@ CREATE TABLE IF NOT EXISTS ior_posts (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='帖子主表';
 
 -- 2. 帖子版本表（存文本快照）
-CREATE TABLE IF NOT EXISTS ior_post_versions (
+CREATE TABLE ior_post_versions (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '版本ID',
     post_id BIGINT NOT NULL COMMENT '关联的帖子ID',
     version_number INT NOT NULL COMMENT '版本号（从1开始递增）',
@@ -43,6 +50,7 @@ CREATE TABLE IF NOT EXISTS ior_post_versions (
     -- 文本快照
     title VARCHAR(200) NOT NULL DEFAULT '' COMMENT '标题快照',
     content TEXT COMMENT '内容快照',
+    media_urls TEXT COMMENT '媒体URL快照（JSON格式）',
     
     change_summary VARCHAR(500) NOT NULL DEFAULT '' COMMENT '修改说明',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '版本创建时间',
@@ -53,8 +61,8 @@ CREATE TABLE IF NOT EXISTS ior_post_versions (
     UNIQUE KEY uk_post_version (post_id, version_number)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='帖子版本历史表';
 
--- 3. 媒体文件表（独立存储）⭐ 核心表
-CREATE TABLE IF NOT EXISTS ior_post_media (
+-- 3. 媒体文件表（独立存储，可选使用）
+CREATE TABLE ior_post_media (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '媒体ID',
     post_id BIGINT NOT NULL COMMENT '关联的帖子ID',
     version_id BIGINT NOT NULL COMMENT '关联的版本ID',
@@ -89,7 +97,7 @@ CREATE TABLE IF NOT EXISTS ior_post_media (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='帖子媒体文件表';
 
 -- 4. 帖子分类表
-CREATE TABLE IF NOT EXISTS ior_post_categories (
+CREATE TABLE ior_post_categories (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '分类ID',
     name VARCHAR(50) NOT NULL COMMENT '分类名称',
     description VARCHAR(200) NOT NULL DEFAULT '' COMMENT '分类描述',
@@ -113,3 +121,7 @@ INSERT INTO ior_post_categories (name, description, parent_id, sort_order, is_ac
 ('旅行', '旅行见闻和照片', 0, 4, 1),
 ('思考', '思考和感悟', 0, 5, 1),
 ('创作', '原创作品展示', 0, 6, 1);
+
+-- 验证表是否创建成功
+SELECT 'Tables created successfully!' AS result;
+SHOW TABLES LIKE 'ior_post%';

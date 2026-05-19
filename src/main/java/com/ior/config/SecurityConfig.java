@@ -57,6 +57,10 @@ public class SecurityConfig {
                 ).permitAll()
                 // 放行用户注册、登录、发送验证码和重置密码接口
                 .requestMatchers("/user/register", "/user/login", "/user/sendcode", "/user/password/reset").permitAll()
+                // 放行文件上传接口（需要传入业务参数如 postId）
+                .requestMatchers("/file/**").permitAll()
+                // 【临时测试】放行帖子接口
+                .requestMatchers("/post/**").permitAll()
                 // 放行 Hello World 测试接口
                 .requestMatchers("/hello").permitAll()
                 // 其他所有请求都需要认证（只要 Token 有效即可访问）

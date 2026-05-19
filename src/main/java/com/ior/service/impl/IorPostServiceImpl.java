@@ -103,12 +103,13 @@ public class IorPostServiceImpl extends ServiceImpl<IorPostMapper, IorPost> impl
 
         postVersionMapper.insert(newVersion);
 
-        // 5. 更新帖子主表
+        // 5. 更新帖子主表（显式设置 updatedAt 以确保触发更新）
         post.setTitle(title);
         post.setContent(content);
         post.setMediaUrls(mediaUrls);
         post.setVersionCount(newVersionNumber);
         post.setCurrentVersionId(newVersion.getId());
+        post.setUpdatedAt(LocalDateTime.now()); // 显式更新时间
         this.updateById(post);
 
         log.info("用户 {} 修改帖子 {}，生成新版本 v{}", userId, postId, newVersionNumber);
@@ -220,6 +221,7 @@ public class IorPostServiceImpl extends ServiceImpl<IorPostMapper, IorPost> impl
         post.setMediaUrls(targetVersion.getMediaUrls());
         post.setVersionCount(newVersionNumber);
         post.setCurrentVersionId(newVersion.getId());
+        post.setUpdatedAt(LocalDateTime.now()); // 显式更新时间
         this.updateById(post);
 
         log.info("用户 {} 将帖子 {} 恢复到版本 v{}", userId, postId, targetVersion.getVersionNumber());
@@ -243,9 +245,112 @@ public class IorPostServiceImpl extends ServiceImpl<IorPostMapper, IorPost> impl
         // 3. 软删除
         post.setStatus(0);
         post.setDeletedAt(LocalDateTime.now());
+        post.setUpdatedAt(LocalDateTime.now()); // 显式更新时间
         this.updateById(post);
 
         log.info("用户 {} 删除帖子 {}", userId, postId);
         return Result.ok("删除成功");
+    }
+
+    @Override
+    public Result getMyDrafts(Long userId, Integer page, Integer size) {
+        // 参数默认值
+        if (page == null || page < 1) page = 1;
+        if (size == null || size < 1) size = 20;
+        if (size > 100) size = 100;
+
+        // 查询我的草稿
+        LambdaQueryWrapper<IorPost> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(IorPost::getUserId, userId)
+               .eq(IorPost::getVisibility, "DRAFT")  // 只查草稿
+               .eq(IorPost::getStatus, 1)  // 正常状态
+               .orderByDesc(IorPost::getUpdatedAt);  // 按更新时间倒序
+        
+        int offset = (page - 1) * size;
+        wrapper.last("LIMIT " + size + " OFFSET " + offset);
+        
+        List<IorPost> drafts = this.list(wrapper);
+        
+        log.debug("获取用户 {} 的草稿列表，页码: {}, 共 {} 条", userId, page, drafts.size());
+        return Result.ok(drafts);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Result publishDraft(Long postId, Long userId, String visibility) {
+        // 1. 查询帖子
+        IorPost post = this.getById(postId);
+        if (post == null) {
+            return Result.error(404, "帖子不存在");
+        }
+
+        // 2. 权限检查
+        if (!post.getUserId().equals(userId)) {
+            return Result.error(403, "无权发布此草稿");
+        }
+
+        // 3. 验证是否为草稿
+        if (!"DRAFT".equals(post.getVisibility())) {
+            return Result.error(400, "该帖子不是草稿");
+        }
+
+        // 4. 验证可见性参数
+        if (!"PUBLIC".equals(visibility) && !"PRIVATE".equals(visibility)) {
+            return Result.error(400, "可见性必须是 PUBLIC 或 PRIVATE");
+        }
+
+        // 5. 更新可见性（发布）
+        post.setVisibility(visibility);
+        post.setUpdatedAt(LocalDateTime.now()); // 显式更新时间
+        this.updateById(post);
+
+        log.info("用户 {} 发布草稿 {}，可见性: {}", userId, postId, visibility);
+        return Result.ok("发布成功");
+    }
+
+    @Override
+    public Result getPublicPosts(Long categoryId, String tag, Integer page, Integer size, Long currentUserId) {
+        if (page == null || page < 1) page = 1;
+        if (size == null || size < 1) size = 20;
+        if (size > 100) size = 100;
+
+        LambdaQueryWrapper<IorPost> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(IorPost::getStatus, 1);
+        wrapper.ne(IorPost::getVisibility, "DRAFT");
+        
+        if (categoryId != null && categoryId > 0) {
+            wrapper.eq(IorPost::getCategoryId, categoryId);
+        }
+        
+        if (tag != null && !tag.trim().isEmpty()) {
+            wrapper.like(IorPost::getTags, tag.trim());
+        }
+        
+        wrapper.orderByDesc(IorPost::getCreatedAt);
+        
+        int offset = (page - 1) * size;
+        wrapper.last("LIMIT " + size + " OFFSET " + offset);
+        
+        List<IorPost> posts = this.list(wrapper);
+        log.debug("获取公共帖子列表，分类ID: {}, 标签: {}, 页码: {}, 共 {} 条", categoryId, tag, page, posts.size());
+        return Result.ok(posts);
+    }
+
+    @Override
+    public Result getMyPosts(Long userId, Integer page, Integer size) {
+        if (page == null || page < 1) page = 1;
+        if (size == null || size < 1) size = 20;
+        if (size > 100) size = 100;
+
+        LambdaQueryWrapper<IorPost> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(IorPost::getUserId, userId)
+               .orderByDesc(IorPost::getUpdatedAt);
+        
+        int offset = (page - 1) * size;
+        wrapper.last("LIMIT " + size + " OFFSET " + offset);
+        
+        List<IorPost> posts = this.list(wrapper);
+        log.debug("获取用户 {} 的帖子列表，页码: {}, 共 {} 条", userId, page, posts.size());
+        return Result.ok(posts);
     }
 }

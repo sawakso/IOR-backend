@@ -99,6 +99,27 @@ public class R2StorageService {
     }
 
     /**
+     * 上传文件到 R2（自动判断类型）
+     * @param file 上传的文件
+     * @return 文件的公网访问 URL
+     */
+    public String uploadFile(MultipartFile file) throws IOException {
+        // 根据文件类型自动选择文件夹
+        String contentType = file.getContentType();
+        String folder = "posts"; // 默认文件夹
+        
+        if (contentType != null) {
+            if (contentType.startsWith("image/")) {
+                folder = "posts/images";
+            } else if (contentType.startsWith("video/")) {
+                folder = "posts/videos";
+            }
+        }
+        
+        return uploadFile(file, folder);
+    }
+
+    /**
      * 获取文件扩展名
      */
     private String getFileExtension(String filename) {
@@ -126,5 +147,53 @@ public class R2StorageService {
         } catch (Exception e) {
             log.error("文件删除失败: {}", fileUrl, e);
         }
+    }
+
+    /**
+     * 清理临时目录中超过指定时间的文件
+     * @param hours 时间阈值（小时）
+     * @return 删除的文件数量
+     */
+    public int deleteOldTempFiles(int hours) {
+        int deletedCount = 0;
+        
+        try {
+            // 列出 posts/temp 目录下的所有文件
+            var listRequest = software.amazon.awssdk.services.s3.model.ListObjectsV2Request.builder()
+                    .bucket(bucket)
+                    .prefix("posts/temp/")
+                    .build();
+            
+            var response = s3Client.listObjectsV2(listRequest);
+            
+            // 计算时间阈值
+            long thresholdMillis = System.currentTimeMillis() - (hours * 60 * 60 * 1000L);
+            
+            // 遍历文件，删除超过阈值的
+            for (var s3Object : response.contents()) {
+                String key = s3Object.key();
+                
+                // 检查文件最后修改时间
+                if (s3Object.lastModified() != null) {
+                    long fileTime = s3Object.lastModified().toEpochMilli();
+                    
+                    if (fileTime < thresholdMillis) {
+                        // 删除文件
+                        s3Client.deleteObject(builder -> builder
+                                .bucket(bucket)
+                                .key(key)
+                                .build());
+                        
+                        deletedCount++;
+                        log.debug("删除孤儿文件: {}", key);
+                    }
+                }
+            }
+            
+        } catch (Exception e) {
+            log.error("清理临时文件失败", e);
+        }
+        
+        return deletedCount;
     }
 }

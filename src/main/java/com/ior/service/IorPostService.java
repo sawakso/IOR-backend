@@ -42,4 +42,24 @@ public interface IorPostService extends IService<IorPost> {
      * 删除帖子（软删除）
      */
     Result deletePost(Long postId, Long userId);
+
+    /**
+     * 获取我的草稿列表
+     */
+    Result getMyDrafts(Long userId, Integer page, Integer size);
+
+    /**
+     * 发布草稿（将 DRAFT 改为 PUBLIC 或 PRIVATE）
+     */
+    Result publishDraft(Long postId, Long userId, String visibility);
+
+    /**
+     * 获取公共帖子列表（分页、筛选）
+     */
+    Result getPublicPosts(Long categoryId, String tag, Integer page, Integer size, Long currentUserId);
+
+    /**
+     * 获取我的帖子列表（包括草稿、私密）
+     */
+    Result getMyPosts(Long userId, Integer page, Integer size);
 }
